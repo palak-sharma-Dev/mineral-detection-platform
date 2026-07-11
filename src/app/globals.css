@@ -1,22 +1,26 @@
 @import "tailwindcss";
 
 :root {
-  --background: #F4F7FB;
-  --card: #FFFFFF;
-  --foreground: #0F1A2B;
-  --foreground-secondary: #33475B;
-  --foreground-muted: #A8B6CE;
-  --primary: #1C4A7A;
-  --secondary: #2E8B8B;
-  --accent: #F5B850;
-  --error: #D9534F;
+  --background: #f4f7fb;
+  --card: #ffffff;
+  --foreground: #0f1a2b;
+  --foreground-secondary: #4f6278;
+  --foreground-muted: #7f91a8;
+  --primary: #1c4a7a;
+  --secondary: #2e8b8b;
+  --accent: #f5b850;
+  --error: #d9534f;
 
-  --radius-sm: 0.5rem;
-  --radius-md: 1rem;
-  --radius-lg: 1.5rem;
+  --radius-sm: 0.375rem;
+  --radius-md: 0.625rem;
+  --radius-lg: 0.875rem;
 
-  --shadow-card: 0 10px 30px rgba(15, 26, 43, 0.08);
-  --shadow-elevated: 0 20px 60px rgba(15, 26, 43, 0.12);
+  --surface-muted: #f7f9fc;
+  --surface-strong: #ffffff;
+  --border-soft: rgba(15, 26, 43, 0.08);
+
+  --shadow-card: 0 1px 2px rgba(15, 26, 43, 0.04);
+  --shadow-elevated: 0 10px 24px rgba(15, 26, 43, 0.05);
 
   --space-xs: 0.25rem;
   --space-sm: 0.5rem;
@@ -59,6 +63,7 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+  line-height: 1.5;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
