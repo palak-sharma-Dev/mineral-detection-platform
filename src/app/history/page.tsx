@@ -1,28 +1,85 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { AuthGuard } from "@/components/auth/AuthGuard";
+import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
 import { Container } from "@/components/ui/Container";
+import { apiRequest } from "@/lib/api";
 
-const previousAnalyses = [
-  { id: "AN-001", name: "Sample A", status: "Completed" },
-  { id: "AN-002", name: "Sample B", status: "Pending Review" },
-  { id: "AN-003", name: "Sample C", status: "Completed" },
-];
+interface UploadHistoryItem {
+  _id: string;
+  originalFileName: string;
+  uploadStatus: string;
+  predictionStatus: string;
+  createdAt: string;
+}
 
-const recentUploads = [
-  { id: "UP-001", name: "Image-01.tif", status: "Uploaded" },
-  { id: "UP-002", name: "Image-02.tif", status: "Uploaded" },
-  { id: "UP-003", name: "Image-03.tif", status: "Uploaded" },
-  { id: "UP-004", name: "Image-04.tif", status: "Uploaded" },
-  { id: "UP-005", name: "Image-05.tif", status: "Uploaded" },
-  { id: "UP-006", name: "Image-06.tif", status: "Uploaded" },
-  { id: "UP-007", name: "Image-07.tif", status: "Uploaded" },
-  { id: "UP-008", name: "Image-08.tif", status: "Uploaded" },
-  { id: "UP-009", name: "Image-09.tif", status: "Uploaded" },
-  { id: "UP-010", name: "Image-10.tif", status: "Uploaded" },
-];
+function titleCase(value: string) {
+  return value.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat("en-IN", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+}
+
+function LoadingState({ label }: { label: string }) {
+  return (
+    <div className="space-y-3 text-center">
+      <div className="garud-loading-line mx-auto h-1 w-24 rounded-full bg-[color:var(--foreground-muted)]/14" />
+      <p>{label}</p>
+    </div>
+  );
+}
+
+function EmptyState({ label }: { label: string }) {
+  return (
+    <div className="text-center">
+      <span className="garud-empty-mark">G</span>
+      <p>{label}</p>
+    </div>
+  );
+}
 
 export default function HistoryPage() {
+  const [history, setHistory] = useState<UploadHistoryItem[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadHistory() {
+      try {
+        const response = await apiRequest<UploadHistoryItem[]>("/history");
+        if (isMounted) {
+          setHistory(response.data ?? []);
+        }
+      } catch (loadError) {
+        if (isMounted) {
+          setError(loadError instanceof Error ? loadError.message : "Unable to load history");
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    void loadHistory();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   return (
-    <main className="min-h-screen bg-[color:var(--background)] px-4 py-8 sm:px-6 lg:px-8">
+    <AuthGuard allowedRoles={["customer"]}>
+      <main className="min-h-screen bg-[color:var(--background)] px-4 py-8 sm:px-6 lg:px-8">
       <Container>
+        <Breadcrumbs items={[{ href: "/", label: "Home" }, { href: "/dashboard", label: "Dashboard" }, { label: "History" }]} />
         <div className="mx-auto max-w-5xl space-y-6">
           <section className="rounded-[0.75rem] border border-[color:var(--foreground-muted)]/14 bg-[color:var(--card)] p-6 sm:p-7">
             <h1 className="text-2xl font-semibold text-[color:var(--foreground)]">History</h1>
@@ -33,21 +90,35 @@ export default function HistoryPage() {
 
           <section className="rounded-[0.75rem] border border-[color:var(--foreground-muted)]/14 bg-[color:var(--card)] p-6 sm:p-7">
             <h2 className="text-xl font-semibold text-[color:var(--foreground)]">Previous Analyses</h2>
-            <div className="mt-5 overflow-hidden rounded-[0.5rem] border border-[color:var(--foreground-muted)]/12">
+            <div className="mt-5 overflow-x-auto overflow-hidden rounded-[0.5rem] border border-[color:var(--foreground-muted)]/12">
               <table className="min-w-full divide-y divide-[color:var(--foreground-muted)]/12 text-left text-sm">
                 <thead className="bg-[color:var(--background)]">
                   <tr>
                     <th className="px-4 py-3 font-medium text-[color:var(--foreground-secondary)]">ID</th>
                     <th className="px-4 py-3 font-medium text-[color:var(--foreground-secondary)]">Analysis</th>
                     <th className="px-4 py-3 font-medium text-[color:var(--foreground-secondary)]">Status</th>
+                    <th className="px-4 py-3 font-medium text-[color:var(--foreground-secondary)]">Uploaded</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[color:var(--foreground-muted)]/12 bg-[color:var(--card)]">
-                  {previousAnalyses.map((analysis) => (
-                    <tr key={analysis.id}>
-                      <td className="px-4 py-3 text-[color:var(--foreground)]">{analysis.id}</td>
-                      <td className="px-4 py-3 text-[color:var(--foreground)]">{analysis.name}</td>
-                      <td className="px-4 py-3 text-[color:var(--foreground-secondary)]">{analysis.status}</td>
+                  {isLoading ? (
+                    <tr>
+                      <td colSpan={4} className="px-4 py-8 text-center text-[color:var(--foreground-secondary)]"><LoadingState label="Loading analyses." /></td>
+                    </tr>
+                  ) : error ? (
+                    <tr>
+                      <td colSpan={4} className="px-4 py-8 text-center text-[color:var(--error)]">{error}</td>
+                    </tr>
+                  ) : history.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="px-4 py-8 text-center text-[color:var(--foreground-secondary)]"><EmptyState label="No analyses available yet." /></td>
+                    </tr>
+                  ) : history.map((analysis) => (
+                    <tr key={analysis._id}>
+                      <td className="px-4 py-3 text-[color:var(--foreground)]">{analysis._id}</td>
+                      <td className="px-4 py-3 text-[color:var(--foreground)]">{analysis.originalFileName}</td>
+                      <td className="px-4 py-3 text-[color:var(--foreground-secondary)]">{titleCase(analysis.predictionStatus || analysis.uploadStatus)}</td>
+                      <td className="px-4 py-3 text-[color:var(--foreground-secondary)]">{formatDate(analysis.createdAt)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -58,18 +129,30 @@ export default function HistoryPage() {
           <section className="rounded-[0.75rem] border border-[color:var(--foreground-muted)]/14 bg-[color:var(--card)] p-6 sm:p-7">
             <h2 className="text-xl font-semibold text-[color:var(--foreground)]">Last 10 Uploads</h2>
             <div className="mt-5 space-y-3">
-              {recentUploads.map((upload) => (
+              {isLoading ? (
+                <div className="rounded-[0.5rem] border border-[color:var(--foreground-muted)]/12 bg-[color:var(--background)] px-4 py-8 text-center text-sm text-[color:var(--foreground-secondary)]">
+                  <LoadingState label="Loading uploads." />
+                </div>
+              ) : error ? (
+                <div className="rounded-[0.5rem] border border-[color:var(--foreground-muted)]/12 bg-[color:var(--background)] px-4 py-8 text-center text-sm text-[color:var(--error)]">
+                  {error}
+                </div>
+              ) : history.length === 0 ? (
+                <div className="rounded-[0.5rem] border border-[color:var(--foreground-muted)]/12 bg-[color:var(--background)] px-4 py-8 text-center text-sm text-[color:var(--foreground-secondary)]">
+                  <EmptyState label="No uploads available yet." />
+                </div>
+              ) : history.map((upload) => (
                 <div
-                  key={upload.id}
+                  key={upload._id}
                   className="flex items-center justify-between rounded-[0.5rem] border border-[color:var(--foreground-muted)]/12 bg-[color:var(--background)] px-4 py-3"
                 >
                   <div>
-                    <p className="text-sm font-medium text-[color:var(--foreground)]">{upload.name}</p>
+                    <p className="text-sm font-medium text-[color:var(--foreground)]">{upload.originalFileName}</p>
                     <p className="text-xs uppercase tracking-[0.24em] text-[color:var(--foreground-secondary)]">
-                      {upload.id}
+                      {upload._id}
                     </p>
                   </div>
-                  <span className="text-sm text-[color:var(--foreground-secondary)]">{upload.status}</span>
+                  <span className="text-sm text-[color:var(--foreground-secondary)]">{titleCase(upload.uploadStatus)}</span>
                 </div>
               ))}
             </div>
@@ -78,11 +161,12 @@ export default function HistoryPage() {
           <section className="rounded-[0.75rem] border border-[color:var(--foreground-muted)]/14 bg-[color:var(--card)] p-6 sm:p-7">
             <h2 className="text-xl font-semibold text-[color:var(--foreground)]">Download Reports</h2>
             <div className="mt-4 rounded-[0.5rem] border border-[color:var(--foreground-muted)]/12 bg-[color:var(--background)] px-4 py-6 text-sm text-[color:var(--foreground-secondary)]">
-              Placeholder report download section.
+              {isLoading ? "Loading report history." : error ? error : history.length === 0 ? "No report history available yet." : "Reports are available from the Reports page."}
             </div>
           </section>
         </div>
       </Container>
-    </main>
+      </main>
+    </AuthGuard>
   );
 }

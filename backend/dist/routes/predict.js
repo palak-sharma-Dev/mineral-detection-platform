@@ -1,0 +1,10 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const auth_1 = require("../middleware/auth");
+const asyncHandler_1 = require("../middleware/asyncHandler");
+const predictController_1 = require("../controllers/predictController");
+const router = (0, express_1.Router)();
+router.get("/predict/status/:jobId", auth_1.authenticate, (0, asyncHandler_1.asyncHandler)(predictController_1.getPredictionStatusController));
+router.get("/predict/result/:jobId", auth_1.authenticate, (0, asyncHandler_1.asyncHandler)(predictController_1.getPredictionResultController));
+exports.default = router;

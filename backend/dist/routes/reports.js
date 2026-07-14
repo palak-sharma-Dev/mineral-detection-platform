@@ -1,0 +1,11 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const auth_1 = require("../middleware/auth");
+const asyncHandler_1 = require("../middleware/asyncHandler");
+const reportController_1 = require("../controllers/reportController");
+const router = (0, express_1.Router)();
+router.get("/reports", auth_1.authenticate, (0, asyncHandler_1.asyncHandler)(reportController_1.getReportsController));
+router.get("/reports/:id", auth_1.authenticate, (0, asyncHandler_1.asyncHandler)(reportController_1.getReportByIdController));
+router.get("/reports/:id/download", auth_1.authenticate, (0, asyncHandler_1.asyncHandler)(reportController_1.downloadReportController));
+exports.default = router;

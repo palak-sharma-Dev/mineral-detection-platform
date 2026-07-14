@@ -2,6 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
+import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/", label: "Landing" },
@@ -14,6 +17,9 @@ const navItems = [
 
 export function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const pathname = usePathname();
+  const { isAuthenticated, logout } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -24,6 +30,10 @@ export function Header() {
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [pathname]);
 
   return (
     <header
@@ -51,42 +61,112 @@ export function Header() {
         </Link>
 
         <nav aria-label="Primary navigation" className="hidden items-center gap-8 md:flex">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="text-sm font-medium text-[color:var(--foreground-secondary)] transition hover:text-[color:var(--foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--background)]"
-            >
-              {item.label}
-            </Link>
-          ))}
+          {navItems.map((item) => {
+            const isActive =
+              item.href === "/"
+                ? pathname === item.href
+                : pathname.startsWith(item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--background)]",
+                  isActive
+                    ? "text-[color:var(--foreground)]"
+                    : "text-[color:var(--foreground-secondary)] hover:text-[color:var(--foreground)]"
+                )}
+                aria-current={isActive ? "page" : undefined}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
-          <Link
-            href="/login"
-            className="rounded-[0.5rem] border border-[color:var(--foreground-muted)]/20 px-4 py-2 text-sm font-medium text-[color:var(--foreground)] transition hover:bg-[color:var(--surface-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--background)]"
-          >
-            Login
-          </Link>
-          <Link
-            href="/login"
-            className="rounded-[0.5rem] bg-[color:var(--primary)] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[color:var(--primary)]/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--background)]"
-          >
-            Login
-          </Link>
+          {isAuthenticated ? (
+            <button
+              type="button"
+              onClick={logout}
+              className="rounded-[0.5rem] border border-[color:var(--foreground-muted)]/20 bg-[color:var(--card)] px-4 py-2 text-sm font-medium text-[color:var(--foreground)] transition hover:bg-[color:var(--surface-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--background)]"
+            >
+              Sign Out
+            </button>
+          ) : (
+            <Link
+              href="/login"
+              className="rounded-[0.5rem] border border-[color:var(--foreground-muted)]/20 bg-[color:var(--card)] px-4 py-2 text-sm font-medium text-[color:var(--foreground)] transition hover:bg-[color:var(--surface-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--background)]"
+            >
+              Sign In
+            </Link>
+          )}
         </div>
 
         <button
           type="button"
-          aria-label="Open mobile menu"
-          aria-expanded="false"
+          aria-label={mobileMenuOpen ? "Close mobile menu" : "Open mobile menu"}
+          aria-expanded={mobileMenuOpen}
+          aria-controls="mobile-menu"
           className="inline-flex items-center justify-center rounded-[0.5rem] border border-[color:var(--foreground-muted)]/20 bg-[color:var(--card)] p-2 text-[color:var(--foreground)] transition hover:bg-[color:var(--surface-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--background)] md:hidden"
+          onClick={() => setMobileMenuOpen((open) => !open)}
         >
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M4 7h16M4 12h16M4 17h16" />
+            {mobileMenuOpen ? (
+              <path d="M6 6l12 12M18 6 6 18" />
+            ) : (
+              <path d="M4 7h16M4 12h16M4 17h16" />
+            )}
           </svg>
         </button>
+      </div>
+
+      <div
+        id="mobile-menu"
+        className={cn(
+          "overflow-hidden border-t border-[color:var(--foreground-muted)]/12 bg-[color:var(--background)] transition-[max-height] duration-300 ease-out md:hidden",
+          mobileMenuOpen ? "max-h-[520px]" : "max-h-0"
+        )}
+      >
+        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 pb-5 pt-4 sm:px-6">
+          {navItems.map((item) => {
+            const isActive =
+              item.href === "/"
+                ? pathname === item.href
+                : pathname.startsWith(item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "rounded-[0.5rem] px-4 py-3 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--background)]",
+                  isActive
+                    ? "bg-[color:var(--surface-muted)] text-[color:var(--foreground)]"
+                    : "text-[color:var(--foreground-secondary)] hover:bg-[color:var(--surface-muted)] hover:text-[color:var(--foreground)]"
+                )}
+                aria-current={isActive ? "page" : undefined}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
+          {isAuthenticated ? (
+            <button
+              type="button"
+              onClick={logout}
+              className="rounded-[0.5rem] border border-[color:var(--foreground-muted)]/20 bg-[color:var(--card)] px-4 py-3 text-left text-sm font-medium text-[color:var(--foreground)] transition hover:bg-[color:var(--surface-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--background)]"
+            >
+              Sign Out
+            </button>
+          ) : (
+            <Link
+              href="/login"
+              className="rounded-[0.5rem] border border-[color:var(--foreground-muted)]/20 bg-[color:var(--card)] px-4 py-3 text-sm font-medium text-[color:var(--foreground)] transition hover:bg-[color:var(--surface-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--background)]"
+            >
+              Sign In
+            </Link>
+          )}
+        </div>
       </div>
     </header>
   );

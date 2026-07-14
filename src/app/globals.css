@@ -75,3 +75,77 @@ select,
 textarea {
   font: inherit;
 }
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.68;
+}
+
+table th {
+  white-space: nowrap;
+}
+
+table tbody tr {
+  transition: background-color 160ms ease;
+}
+
+table tbody tr:hover {
+  background: var(--surface-muted);
+}
+
+.garud-startup-line {
+  animation: garud-startup-progress 900ms ease-in-out forwards;
+  transform-origin: left center;
+}
+
+.garud-loading-line {
+  position: relative;
+  overflow: hidden;
+}
+
+.garud-loading-line::after {
+  animation: garud-loading-sweep 1100ms ease-in-out infinite;
+  background: var(--primary);
+  border-radius: 999px;
+  content: "";
+  inset: 0 auto 0 0;
+  position: absolute;
+  width: 38%;
+}
+
+.garud-empty-mark {
+  align-items: center;
+  border: 1px solid rgba(127, 145, 168, 0.16);
+  border-radius: var(--radius-md);
+  color: var(--primary);
+  display: inline-flex;
+  font-size: 0.75rem;
+  font-weight: 700;
+  height: 2rem;
+  justify-content: center;
+  letter-spacing: 0.18em;
+  margin-bottom: 0.75rem;
+  width: 2rem;
+}
+
+@keyframes garud-startup-progress {
+  0% {
+    transform: scaleX(0);
+  }
+  100% {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes garud-loading-sweep {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(280%);
+  }
+}

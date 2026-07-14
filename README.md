@@ -1,3 +1,18 @@
+# Garud AI Mineral Detection Platform
+
+## Project Documentation
+
+Read these before making changes:
+
+docs/PROJECT_REQUIREMENTS.md
+
+docs/PROJECT_RULES.md
+
+docs/ARCHITECTURE.md
+
+docs/API_SPECIFICATION.md
+
+docs/DEVELOPMENT_ROADMAP.md
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
