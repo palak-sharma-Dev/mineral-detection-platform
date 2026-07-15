@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { AuthGuard } from "@/components/auth/AuthGuard";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
+import { SidebarLayout } from "@/components/layout/SidebarLayout";
 import { Container } from "@/components/ui/Container";
 import { apiRequest } from "@/lib/api";
 
@@ -77,9 +78,10 @@ export default function HistoryPage() {
 
   return (
     <AuthGuard allowedRoles={["customer"]}>
-      <main className="min-h-screen bg-[color:var(--background)] px-4 py-8 sm:px-6 lg:px-8">
-      <Container>
-        <Breadcrumbs items={[{ href: "/", label: "Home" }, { href: "/dashboard", label: "Dashboard" }, { label: "History" }]} />
+      <SidebarLayout>
+        <div className="px-4 py-8 sm:px-6 lg:px-8">
+          <Container>
+            <Breadcrumbs items={[{ href: "/", label: "Home" }, { href: "/dashboard", label: "Dashboard" }, { label: "History" }]} />
         <div className="mx-auto max-w-5xl space-y-6">
           <section className="rounded-[0.75rem] border border-[color:var(--foreground-muted)]/14 bg-[color:var(--card)] p-6 sm:p-7">
             <h1 className="text-2xl font-semibold text-[color:var(--foreground)]">History</h1>
@@ -165,8 +167,9 @@ export default function HistoryPage() {
             </div>
           </section>
         </div>
-      </Container>
-      </main>
+          </Container>
+        </div>
+      </SidebarLayout>
     </AuthGuard>
   );
 }

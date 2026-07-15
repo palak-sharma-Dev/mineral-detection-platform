@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { AuthGuard } from "@/components/auth/AuthGuard";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
+import { SidebarLayout } from "@/components/layout/SidebarLayout";
 import { Container } from "@/components/ui/Container";
 import { Button } from "@/components/ui/Button";
 import {

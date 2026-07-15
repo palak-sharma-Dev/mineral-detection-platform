@@ -3,6 +3,7 @@
 import { ChangeEvent, useState } from "react";
 import { AuthGuard } from "@/components/auth/AuthGuard";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
+import { SidebarLayout } from "@/components/layout/SidebarLayout";
 import { Button } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Container";
 import { apiRequest, notifyWorkflowUpdated, uploadApiFile } from "@/lib/api";
@@ -142,9 +143,10 @@ export default function AnalysisPage() {
 
   return (
     <AuthGuard allowedRoles={["customer"]}>
-      <main className="min-h-screen bg-[color:var(--background)] px-4 py-8 sm:px-6 lg:px-8">
-        <Container>
-          <Breadcrumbs items={[{ href: "/", label: "Home" }, { href: "/dashboard", label: "Dashboard" }, { label: "Analysis" }]} />
+      <SidebarLayout>
+        <div className="px-4 py-8 sm:px-6 lg:px-8">
+          <Container>
+            <Breadcrumbs items={[{ href: "/", label: "Home" }, { href: "/dashboard", label: "Dashboard" }, { label: "Analysis" }]} />
           <div className="mx-auto max-w-4xl rounded-[0.75rem] border border-[color:var(--foreground-muted)]/14 bg-[color:var(--card)] p-6 sm:p-8">
             <div className="mb-8">
               <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--foreground-secondary)]">
@@ -240,10 +242,11 @@ export default function AnalysisPage() {
                   {isSubmitting ? "Starting Analysis" : "Start Analysis"}
                 </Button>
               </div>
+              </div>
             </div>
-          </div>
-        </Container>
-      </main>
+          </Container>
+        </div>
+      </SidebarLayout>
     </AuthGuard>
   );
 }

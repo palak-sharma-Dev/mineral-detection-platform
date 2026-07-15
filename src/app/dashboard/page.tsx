@@ -6,6 +6,7 @@ import { AuthGuard } from "@/components/auth/AuthGuard";
 import { CurrentUserName } from "@/components/auth/CurrentUserName";
 import { SignOutButton } from "@/components/auth/SignOutButton";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
+import { SidebarLayout } from "@/components/layout/SidebarLayout";
 import { useAuth } from "@/context/AuthContext";
 import { apiRequest, WORKFLOW_UPDATED_EVENT } from "@/lib/api";
 
@@ -113,9 +114,10 @@ export default function DashboardPage() {
 
   return (
     <AuthGuard allowedRoles={["customer"]}>
-      <main className="min-h-screen bg-[color:var(--background)] px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-6xl">
-        <Breadcrumbs items={[{ href: "/", label: "Home" }, { label: "Dashboard" }]} />
+      <SidebarLayout>
+        <div className="px-4 py-8 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-5xl">
+            <Breadcrumbs items={[{ href: "/", label: "Home" }, { label: "Dashboard" }]} />
         <header className="rounded-[0.75rem] border border-[color:var(--foreground-muted)]/14 bg-[color:var(--card)] px-6 py-6 sm:px-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
@@ -253,9 +255,10 @@ export default function DashboardPage() {
               {isLoading ? "Loading reports." : error ? error : recentAnalyses.length === 0 ? "No reports available yet." : `${generatedReports} generated, ${pendingReports} pending or failed.`}
             </div>
           </section>
+          </div>
         </div>
-      </div>
-      </main>
+        </div>
+      </SidebarLayout>
     </AuthGuard>
   );
 }
