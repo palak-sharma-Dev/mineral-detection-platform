@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { AuthGuard } from "@/components/auth/AuthGuard";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
 import { SidebarLayout } from "@/components/layout/SidebarLayout";
@@ -10,19 +10,38 @@ import { apiRequest } from "@/lib/api";
 interface SnapshotItem {
   _id: string;
   originalFileName: string;
-  uploadStatus: string;
-  predictionStatus: string;
-  detectedMinerals?: string[];
+  storedFileName?: string;
+  fileType?: string;
+  fileSize?: number;
+  predictionSummary?: string;
   confidenceScore?: number;
+  detectedMinerals?: string[];
   createdAt: string;
 }
 
-function titleCase(value?: string) {
-  if (!value) {
-    return "Pending";
+function formatFileSize(bytes?: number) {
+  if (!bytes || bytes <= 0) {
+    return "Unknown";
   }
 
-  return value.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+  const units = ["B", "KB", "MB", "GB"];
+  let value = bytes;
+  let unitIndex = 0;
+
+  while (value >= 1024 && unitIndex < units.length - 1) {
+    value /= 1024;
+    unitIndex += 1;
+  }
+
+  return `${value.toFixed(value >= 10 || unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
+}
+
+function formatConfidence(score?: number) {
+  if (typeof score !== "number") {
+    return "N/A";
+  }
+
+  return `${score.toFixed(1)}%`;
 }
 
 function formatDate(value?: string) {
@@ -53,7 +72,7 @@ function EmptyBlock() {
       </span>
       <h3 className="mt-4 text-sm font-semibold text-zinc-100">No snapshots yet</h3>
       <p className="mt-2 text-sm leading-6 text-zinc-500">
-        Uploaded mineral image snapshots will appear here after analysis requests.
+        Mineral image snapshots will appear here after a completed analysis request.
       </p>
     </div>
   );
@@ -69,9 +88,9 @@ export default function SnapshotsPage() {
 
     async function loadSnapshots() {
       try {
-        const response = await apiRequest<SnapshotItem[]>("/history");
+        const response = await apiRequest<SnapshotItem[]>("/snapshots");
         if (isMounted) {
-          setSnapshots((response.data ?? []).slice(0, 10));
+          setSnapshots(response.data ?? []);
           setError(null);
         }
       } catch (loadError) {
@@ -92,8 +111,6 @@ export default function SnapshotsPage() {
     };
   }, []);
 
-  const latestSnapshots = useMemo(() => snapshots.slice(0, 10), [snapshots]);
-
   return (
     <AuthGuard allowedRoles={["customer"]}>
       <SidebarLayout>
@@ -110,7 +127,7 @@ export default function SnapshotsPage() {
                   Mineral Image Snapshots
                 </h1>
                 <p className="mt-4 max-w-2xl text-sm leading-7 text-zinc-300">
-                  Browse the latest uploaded mineral image records separately from analysis history.
+                  Browse the latest snapshot records captured after completed mineral image analyses.
                 </p>
               </section>
 
@@ -118,10 +135,10 @@ export default function SnapshotsPage() {
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                   <div>
                     <h2 className="text-xl font-semibold text-white">Latest Snapshots</h2>
-                    <p className="mt-2 text-sm text-zinc-500">Existing upload snapshot data, limited to the latest 10 records.</p>
+                    <p className="mt-2 text-sm text-zinc-500">Snapshot records from completed predictions, limited to the latest 10 entries.</p>
                   </div>
                   <span className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-600">
-                    {latestSnapshots.length} items
+                    {snapshots.length} items
                   </span>
                 </div>
 
@@ -130,11 +147,11 @@ export default function SnapshotsPage() {
                     <LoadingBlock />
                   ) : error ? (
                     <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-5 text-sm text-red-200">{error}</div>
-                  ) : latestSnapshots.length === 0 ? (
+                  ) : snapshots.length === 0 ? (
                     <EmptyBlock />
                   ) : (
                     <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
-                      {latestSnapshots.map((snapshot) => (
+                      {snapshots.map((snapshot) => (
                         <article
                           key={snapshot._id}
                           className="overflow-hidden rounded-2xl border border-white/10 bg-zinc-950/70 transition hover:-translate-y-0.5 hover:border-[color:var(--primary)]/35"
@@ -149,14 +166,20 @@ export default function SnapshotsPage() {
                               {snapshot.originalFileName}
                             </h3>
                             <p className="mt-2 text-xs text-zinc-500">{formatDate(snapshot.createdAt)}</p>
+
+                            {snapshot.predictionSummary ? (
+                              <p className="mt-3 text-xs leading-5 text-zinc-400">{snapshot.predictionSummary}</p>
+                            ) : null}
+
                             <div className="mt-4 flex flex-wrap gap-2">
                               <span className="rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1 text-xs text-zinc-300">
-                                {titleCase(snapshot.uploadStatus)}
+                                {formatFileSize(snapshot.fileSize)}
                               </span>
                               <span className="rounded-full border border-amber-400/20 bg-amber-400/10 px-2.5 py-1 text-xs text-amber-200">
-                                {titleCase(snapshot.predictionStatus)}
+                                {formatConfidence(snapshot.confidenceScore)}
                               </span>
                             </div>
+
                             {snapshot.detectedMinerals?.length ? (
                               <p className="mt-4 text-xs leading-5 text-zinc-500">
                                 {snapshot.detectedMinerals.slice(0, 3).join(", ")}
