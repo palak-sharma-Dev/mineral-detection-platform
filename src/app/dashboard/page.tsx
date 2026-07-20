@@ -1,14 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AuthGuard } from "@/components/auth/AuthGuard";
 import { CurrentUserName } from "@/components/auth/CurrentUserName";
-import { SignOutButton } from "@/components/auth/SignOutButton";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
 import { SidebarLayout } from "@/components/layout/SidebarLayout";
 import { useAuth } from "@/context/AuthContext";
 import { apiRequest, WORKFLOW_UPDATED_EVENT } from "@/lib/api";
+import { getSubscriptionStatus, SubscriptionStatus } from "@/lib/payment";
 
 interface DashboardUpload {
   _id: string;
@@ -39,20 +39,34 @@ function titleCase(value: string) {
   return value.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
-function LoadingState({ label }: { label: string }) {
+function formatDate(value?: string) {
+  if (!value) {
+    return "No uploads yet";
+  }
+
+  return new Intl.DateTimeFormat("en-IN", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+}
+
+function LoadingBlock({ label }: { label: string }) {
   return (
-    <div className="space-y-3 text-center">
-      <div className="garud-loading-line mx-auto h-1 w-24 rounded-full bg-[color:var(--foreground-muted)]/14" />
-      <p>{label}</p>
+    <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-6 text-center text-sm text-zinc-400">
+      <div className="garud-loading-line mx-auto mb-3 h-1 w-24 rounded-full bg-white/10" />
+      {label}
     </div>
   );
 }
 
-function EmptyState({ label }: { label: string }) {
+function EmptyBlock({ title, description }: { title: string; description: string }) {
   return (
-    <div className="text-center">
-      <span className="garud-empty-mark">G</span>
-      <p>{label}</p>
+    <div className="rounded-2xl border border-dashed border-white/12 bg-white/[0.025] p-8 text-center">
+      <span className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-sm font-bold text-[color:var(--primary)]">
+        G
+      </span>
+      <h3 className="mt-4 text-sm font-semibold text-zinc-100">{title}</h3>
+      <p className="mt-2 text-sm leading-6 text-zinc-500">{description}</p>
     </div>
   );
 }
@@ -60,8 +74,11 @@ function EmptyState({ label }: { label: string }) {
 export default function DashboardPage() {
   const { user } = useAuth();
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [subscription, setSubscription] = useState<SubscriptionStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [subscriptionError, setSubscriptionError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubscriptionLoading, setIsSubscriptionLoading] = useState(true);
 
   const loadDashboard = useCallback(async (showLoading = false) => {
     if (showLoading) {
@@ -79,8 +96,23 @@ export default function DashboardPage() {
     }
   }, []);
 
+  const loadSubscription = useCallback(async () => {
+    try {
+      const status = await getSubscriptionStatus();
+      setSubscription(status);
+      setSubscriptionError(null);
+    } catch (loadError) {
+      setSubscriptionError(loadError instanceof Error ? loadError.message : "Unable to load subscription");
+    } finally {
+      setIsSubscriptionLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
-    void loadDashboard(true);
+    const initialLoadId = window.setTimeout(() => {
+      void loadDashboard();
+      void loadSubscription();
+    }, 0);
 
     const handleWorkflowUpdate = () => {
       void loadDashboard();
@@ -89,16 +121,37 @@ export default function DashboardPage() {
     window.addEventListener(WORKFLOW_UPDATED_EVENT, handleWorkflowUpdate);
 
     return () => {
+      window.clearTimeout(initialLoadId);
       window.removeEventListener(WORKFLOW_UPDATED_EVENT, handleWorkflowUpdate);
     };
-  }, [loadDashboard]);
+  }, [loadDashboard, loadSubscription]);
 
-  const recentAnalyses = dashboardData?.recentReports ?? [];
-  const recentUploads = dashboardData?.last10Uploads ?? [];
-  const generatedReports = recentAnalyses.filter((report) => report.reportStatus === "generated").length;
-  const pendingReports = recentAnalyses.length - generatedReports;
+  const recentUploads = useMemo(() => dashboardData?.last10Uploads ?? [], [dashboardData?.last10Uploads]);
+  const recentReports = useMemo(() => dashboardData?.recentReports ?? [], [dashboardData?.recentReports]);
+  const totalAnalyses = recentReports.length;
+  const lastUpload = recentUploads[0];
   const profile = dashboardData?.profileSummary ?? user;
   const hasActiveUpload = recentUploads.some((upload) => ["pending", "running"].includes(upload.predictionStatus));
+
+  const recentActivity = useMemo(() => {
+    const uploads = recentUploads.slice(0, 3).map((upload) => ({
+      id: upload._id,
+      title: upload.originalFileName,
+      meta: `Upload ${titleCase(upload.predictionStatus || upload.uploadStatus)}`,
+      date: upload.createdAt,
+    }));
+
+    const reports = recentReports.slice(0, 2).map((report) => ({
+      id: report._id,
+      title: "Mineral Analysis Report",
+      meta: `Report ${titleCase(report.reportStatus)}`,
+      date: report.generatedAt,
+    }));
+
+    return [...uploads, ...reports]
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 5);
+  }, [recentReports, recentUploads]);
 
   useEffect(() => {
     if (!hasActiveUpload) {
@@ -113,150 +166,115 @@ export default function DashboardPage() {
   }, [hasActiveUpload, loadDashboard]);
 
   return (
-    <AuthGuard allowedRoles={["customer"]}>
+    <AuthGuard allowedRoles={["customer", "admin"]}>
       <SidebarLayout>
-        <div className="px-4 py-8 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-5xl">
-            <Breadcrumbs items={[{ href: "/", label: "Home" }, { label: "Dashboard" }]} />
-        <header className="rounded-[0.75rem] border border-[color:var(--foreground-muted)]/14 bg-[color:var(--card)] px-6 py-6 sm:px-8">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3">
-              <div className="inline-flex h-11 w-11 items-center justify-center rounded-[0.625rem] bg-[color:var(--primary)] text-sm font-semibold uppercase tracking-[0.22em] text-white">
-                G
-              </div>
-              <div className="flex flex-col leading-tight">
-                <span className="text-base font-semibold text-[color:var(--foreground)]">GARUD AI</span>
-                <span className="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--foreground-secondary)]">
-                  Mineral Intelligence
-                </span>
-              </div>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-[color:var(--foreground-secondary)]">Welcome</p>
-              <p className="text-lg font-semibold text-[color:var(--foreground)]"><CurrentUserName /></p>
-              {profile?.email ? (
-                <p className="text-xs text-[color:var(--foreground-secondary)]">{profile.email}</p>
-              ) : null}
-            </div>
-            <SignOutButton className="rounded-[0.5rem] border border-[color:var(--foreground-muted)]/20 bg-[color:var(--card)] px-4 py-2 text-sm font-semibold text-[color:var(--foreground)] transition hover:bg-[color:var(--surface-muted)]" />
-          </div>
-        </header>
+        <div className="min-h-screen bg-zinc-950 px-4 py-8 text-zinc-50 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-7xl">
+            <Breadcrumbs items={[{ label: "Dashboard" }]} />
 
-        <div className="mt-8 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-          <section className="rounded-[0.75rem] border border-[color:var(--foreground-muted)]/14 bg-[color:var(--card)] p-6 sm:p-7">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <h2 className="text-xl font-semibold text-[color:var(--foreground)]">New Analysis</h2>
-                <p className="mt-2 text-sm leading-6 text-[color:var(--foreground-secondary)]">
-                  Start a new mineral analysis workflow.
-                </p>
-              </div>
-              <Link
-                href="/analysis"
-                className="rounded-[0.5rem] border border-[color:var(--primary)] bg-[color:var(--primary)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[color:var(--primary)]/90"
-              >
-                Begin
-              </Link>
-            </div>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <Link
-                href="/history"
-                className="rounded-[0.5rem] border border-[color:var(--foreground-muted)]/20 bg-[color:var(--card)] px-3 py-2 text-sm font-semibold text-[color:var(--foreground)] transition hover:bg-[color:var(--surface-muted)]"
-              >
-                View History
-              </Link>
-              <Link
-                href="/reports"
-                className="rounded-[0.5rem] border border-[color:var(--foreground-muted)]/20 bg-[color:var(--card)] px-3 py-2 text-sm font-semibold text-[color:var(--foreground)] transition hover:bg-[color:var(--surface-muted)]"
-              >
-                View Reports
-              </Link>
-              <Link
-                href="/subscription"
-                className="rounded-[0.5rem] border border-[color:var(--foreground-muted)]/20 bg-[color:var(--card)] px-3 py-2 text-sm font-semibold text-[color:var(--foreground)] transition hover:bg-[color:var(--surface-muted)]"
-              >
-                Subscription
-              </Link>
-              <Link
-                href="/admin"
-                className="rounded-[0.5rem] border border-[color:var(--foreground-muted)]/20 bg-[color:var(--card)] px-3 py-2 text-sm font-semibold text-[color:var(--foreground)] transition hover:bg-[color:var(--surface-muted)]"
-              >
-                Admin
-              </Link>
-            </div>
-          </section>
+            <section className="mt-6 overflow-hidden rounded-3xl border border-white/10 bg-[linear-gradient(135deg,rgba(124,140,255,0.16),rgba(255,255,255,0.045)_38%,rgba(56,215,191,0.08))] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.35)] sm:p-8">
+              <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+                <div className="max-w-3xl">
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--secondary)]">
+                    Customer Workspace
+                  </p>
+                  <h1 className="mt-4 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+                    Welcome back, <CurrentUserName />
+                  </h1>
+                  <p className="mt-4 max-w-2xl text-sm leading-7 text-zinc-300">
+                    Monitor mineral analysis activity, uploads and subscription access from one operational command center.
+                  </p>
+                  {profile?.email ? <p className="mt-3 text-xs text-zinc-500">{profile.email}</p> : null}
+                </div>
 
-          <section className="rounded-[0.75rem] border border-[color:var(--foreground-muted)]/14 bg-[color:var(--card)] p-6 sm:p-7">
-            <h2 className="text-xl font-semibold text-[color:var(--foreground)]">Recent Analyses</h2>
-            <div className="mt-5 space-y-3">
-              {isLoading ? (
-                <div className="rounded-[0.5rem] border border-[color:var(--foreground-muted)]/12 bg-[color:var(--background)] px-4 py-8 text-center text-sm text-[color:var(--foreground-secondary)]">
-                  <LoadingState label="Loading analyses." />
+                <div className="flex flex-wrap gap-3">
+                  <Link
+                    href="/analysis"
+                    className="rounded-full border border-[color:var(--primary)] bg-[color:var(--primary)] px-5 py-3 text-sm font-semibold text-white shadow-[0_18px_45px_rgba(124,140,255,0.24)] transition hover:-translate-y-0.5 hover:bg-[color:var(--primary)]/90"
+                  >
+                    New Analysis
+                  </Link>
+                  <Link
+                    href="/reports"
+                    className="rounded-full border border-white/10 bg-white/[0.06] px-5 py-3 text-sm font-semibold text-zinc-100 transition hover:-translate-y-0.5 hover:bg-white/[0.09]"
+                  >
+                    View Reports
+                  </Link>
                 </div>
-              ) : error ? (
-                <div className="rounded-[0.5rem] border border-[color:var(--foreground-muted)]/12 bg-[color:var(--background)] px-4 py-8 text-center text-sm text-[color:var(--error)]">
-                  {error}
-                </div>
-              ) : recentAnalyses.length === 0 ? (
-                <div className="rounded-[0.5rem] border border-[color:var(--foreground-muted)]/12 bg-[color:var(--background)] px-4 py-8 text-center text-sm text-[color:var(--foreground-secondary)]">
-                  <EmptyState label="No analyses available yet." />
-                </div>
-              ) : recentAnalyses.map((analysis) => (
-                <div key={analysis._id} className="flex items-center justify-between rounded-[0.5rem] border border-[color:var(--foreground-muted)]/12 bg-[color:var(--background)] px-4 py-3">
-                  <div>
-                    <p className="text-sm font-medium text-[color:var(--foreground)]">Report</p>
-                    <p className="text-xs uppercase tracking-[0.24em] text-[color:var(--foreground-secondary)]">{analysis._id}</p>
-                  </div>
-                  <span className="text-sm text-[color:var(--foreground-secondary)]">{titleCase(analysis.reportStatus)}</span>
+              </div>
+            </section>
+
+            <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              {[
+                ["Total Analyses", isLoading ? "..." : String(totalAnalyses), "Generated report records"],
+                [
+                  "Subscription Status",
+                  isSubscriptionLoading ? "..." : subscription ? titleCase(subscription.status) : "Unavailable",
+                  subscriptionError ?? (subscription ? `${titleCase(subscription.plan)} plan` : "No status available"),
+                ],
+                ["Recent Activity", isLoading ? "..." : String(recentActivity.length), "Latest platform events"],
+                ["Last Upload Time", isLoading ? "..." : formatDate(lastUpload?.createdAt), lastUpload?.originalFileName ?? "Awaiting first upload"],
+              ].map(([label, value, helper]) => (
+                <div
+                  key={label}
+                  className="rounded-2xl border border-white/10 bg-white/[0.045] p-5 shadow-[0_18px_50px_rgba(0,0,0,0.22)] transition hover:-translate-y-0.5 hover:border-white/18 hover:bg-white/[0.06]"
+                >
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">{label}</p>
+                  <p className="mt-4 text-2xl font-semibold text-white">{value}</p>
+                  <p className="mt-2 text-sm leading-6 text-zinc-500">{helper}</p>
                 </div>
               ))}
-            </div>
-          </section>
-        </div>
+            </section>
 
-        <div className="mt-8 grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-          <section className="rounded-[0.75rem] border border-[color:var(--foreground-muted)]/14 bg-[color:var(--card)] p-6 sm:p-7">
-            <h2 className="text-xl font-semibold text-[color:var(--foreground)]">Last 10 Uploads</h2>
-            <div className="mt-5 overflow-x-auto overflow-hidden rounded-[0.5rem] border border-[color:var(--foreground-muted)]/12">
-              <table className="min-w-full divide-y divide-[color:var(--foreground-muted)]/12 text-left text-sm">
-                <thead className="bg-[color:var(--background)]">
-                  <tr>
-                    <th className="px-4 py-3 font-medium text-[color:var(--foreground-secondary)]">Upload</th>
-                    <th className="px-4 py-3 font-medium text-[color:var(--foreground-secondary)]">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[color:var(--foreground-muted)]/12 bg-[color:var(--card)]">
+            <div className="mt-6 grid gap-6 xl:grid-cols-[0.65fr_1.35fr]">
+              <section className="rounded-3xl border border-white/10 bg-white/[0.035] p-5 shadow-[0_18px_60px_rgba(0,0,0,0.22)] sm:p-6">
+                <h2 className="text-xl font-semibold text-white">Quick Actions</h2>
+                <p className="mt-2 text-sm text-zinc-500">Move directly into the primary analysis workflow.</p>
+                <div className="mt-6 grid gap-3">
+                  <Link
+                    href="/analysis"
+                    className="rounded-2xl border border-[color:var(--primary)] bg-[color:var(--primary)] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[color:var(--primary)]/90"
+                  >
+                    New Analysis
+                  </Link>
+                  <Link
+                    href="/history"
+                    className="rounded-2xl border border-white/10 bg-zinc-950/70 px-4 py-3 text-sm font-semibold text-zinc-100 transition hover:border-[color:var(--primary)]/35"
+                  >
+                    View History
+                  </Link>
+                  <Link
+                    href="/reports"
+                    className="rounded-2xl border border-white/10 bg-zinc-950/70 px-4 py-3 text-sm font-semibold text-zinc-100 transition hover:border-[color:var(--primary)]/35"
+                  >
+                    View Reports
+                  </Link>
+                </div>
+              </section>
+
+              <section className="rounded-3xl border border-white/10 bg-white/[0.035] p-5 shadow-[0_18px_60px_rgba(0,0,0,0.22)] sm:p-6">
+                <h2 className="text-xl font-semibold text-white">Recent Activity</h2>
+                <p className="mt-2 text-sm text-zinc-500">Uploads and report events from your account.</p>
+                <div className="mt-6 space-y-3">
                   {isLoading ? (
-                    <tr>
-                      <td colSpan={2} className="px-4 py-8 text-center text-[color:var(--foreground-secondary)]"><LoadingState label="Loading uploads." /></td>
-                    </tr>
+                    <LoadingBlock label="Loading activity." />
                   ) : error ? (
-                    <tr>
-                      <td colSpan={2} className="px-4 py-8 text-center text-[color:var(--error)]">{error}</td>
-                    </tr>
-                  ) : recentUploads.length === 0 ? (
-                    <tr>
-                      <td colSpan={2} className="px-4 py-8 text-center text-[color:var(--foreground-secondary)]"><EmptyState label="No uploads available yet." /></td>
-                    </tr>
-                  ) : recentUploads.map((upload) => (
-                    <tr key={upload._id}>
-                      <td className="px-4 py-3 text-[color:var(--foreground)]">{upload.originalFileName}</td>
-                      <td className="px-4 py-3 text-[color:var(--foreground-secondary)]">{titleCase(upload.predictionStatus || upload.uploadStatus)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                    <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-5 text-sm text-red-200">{error}</div>
+                  ) : recentActivity.length === 0 ? (
+                    <EmptyBlock title="No activity yet" description="Your recent uploads and reports will appear here." />
+                  ) : (
+                    recentActivity.map((activity) => (
+                      <div key={activity.id} className="rounded-2xl border border-white/10 bg-zinc-950/70 p-4">
+                        <p className="truncate text-sm font-semibold text-white">{activity.title}</p>
+                        <p className="mt-1 text-xs text-zinc-500">{activity.meta}</p>
+                        <p className="mt-3 text-xs text-zinc-600">{formatDate(activity.date)}</p>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </section>
             </div>
-          </section>
-
-          <section className="rounded-[0.75rem] border border-[color:var(--foreground-muted)]/14 bg-[color:var(--card)] p-6 sm:p-7">
-            <h2 className="text-xl font-semibold text-[color:var(--foreground)]">Reports</h2>
-            <div className="mt-5 rounded-[0.5rem] border border-[color:var(--foreground-muted)]/12 bg-[color:var(--background)] px-4 py-8 text-center text-sm text-[color:var(--foreground-secondary)]">
-              {isLoading ? "Loading reports." : error ? error : recentAnalyses.length === 0 ? "No reports available yet." : `${generatedReports} generated, ${pendingReports} pending or failed.`}
-            </div>
-          </section>
           </div>
-        </div>
         </div>
       </SidebarLayout>
     </AuthGuard>

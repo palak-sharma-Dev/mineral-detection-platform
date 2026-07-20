@@ -1,30 +1,53 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PublicAuthRoute } from "@/components/auth/PublicAuthRoute";
-import { getSafeRedirectPath, useAuth } from "@/context/AuthContext";
+import { getDefaultAuthenticatedPath, useAuth } from "@/context/AuthContext";
 
 export default function LoginPage() {
   const { login } = useAuth();
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [authSearch, setAuthSearch] = useState("");
+
+  useEffect(() => {
+    setAuthSearch(window.location.search);
+  }, []);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (isSubmitting) {
+      return;
+    }
+
     setError(null);
+    setSuccess(null);
     setIsSubmitting(true);
 
     const formData = new FormData(event.currentTarget);
-    const email = String(formData.get("email") ?? "");
+    const email = String(formData.get("email") ?? "").trim();
     const password = String(formData.get("password") ?? "");
+
+    if (!email) {
+      setError("Email is required");
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!password) {
+      setError("Password is required");
+      setIsSubmitting(false);
+      return;
+    }
 
     try {
       const user = await login(email, password);
-      const nextPath = new URLSearchParams(window.location.search).get("next");
-      router.replace(getSafeRedirectPath(nextPath, user.role));
+      setSuccess("Signed in successfully. Redirecting...");
+      router.replace(getDefaultAuthenticatedPath(user.role));
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "Unable to sign in");
     } finally {
@@ -85,6 +108,9 @@ export default function LoginPage() {
               {error ? (
                 <p className="text-sm font-medium text-[color:var(--error)]">{error}</p>
               ) : null}
+              {success ? (
+                <p className="text-sm font-medium text-[color:var(--secondary)]">{success}</p>
+              ) : null}
 
               <button
                 type="submit"
@@ -96,7 +122,10 @@ export default function LoginPage() {
             </form>
 
             <div className="mt-6 text-center text-sm text-[color:var(--foreground-secondary)]">
-              <Link href="/register" className="font-medium text-[color:var(--primary)] transition hover:text-[color:var(--primary)]/80">
+              <Link
+                href={`/register${authSearch}`}
+                className="font-medium text-[color:var(--primary)] transition hover:text-[color:var(--primary)]/80"
+              >
                 Register
               </Link>
             </div>

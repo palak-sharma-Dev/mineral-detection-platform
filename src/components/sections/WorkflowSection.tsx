@@ -21,23 +21,29 @@ const workflowSteps = [
 
 export function WorkflowSection() {
   return (
-    <section className="bg-[color:var(--background)] px-0 py-20 sm:py-24 lg:py-28">
+    <section className="px-0 py-18 sm:py-22 lg:py-28">
       <Container>
-        <div className="mx-auto max-w-5xl">
-          <div className="mb-10 sm:mb-12 lg:mb-14">
-            <h2 className="text-3xl font-semibold tracking-[-0.02em] text-[color:var(--foreground)] sm:text-4xl lg:text-[2.55rem]">
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-10 max-w-3xl sm:mb-12 lg:mb-14">
+            <p className="mb-3 text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-[color:var(--secondary)]">
+              Operating Model
+            </p>
+            <h2 className="text-3xl font-semibold text-[color:var(--foreground)] sm:text-4xl lg:text-[2.65rem]">
               System Workflow
             </h2>
           </div>
 
           <div className="hidden lg:block">
-            <div className="rounded-[0.75rem] border border-[color:var(--foreground-muted)]/14 bg-[color:var(--card)] p-6">
+            <div className="overflow-hidden rounded-[1rem] border border-white/10 bg-white/[0.045] p-2 shadow-[var(--shadow-card)]">
               <div className="grid grid-cols-4 gap-0">
                 {workflowSteps.map((step, index) => (
                   <div
                     key={step.title}
-                    className={`px-5 py-4 ${index < workflowSteps.length - 1 ? "border-r border-[color:var(--foreground-muted)]/12" : ""}`}
+                    className={`relative px-6 py-6 ${index < workflowSteps.length - 1 ? "border-r border-white/10" : ""}`}
                   >
+                    <p className="mb-5 text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--foreground-muted)]">
+                      0{index + 1}
+                    </p>
                     <h3 className="text-xl font-semibold text-[color:var(--foreground)]">
                       {step.title}
                     </h3>
@@ -51,11 +57,14 @@ export function WorkflowSection() {
           </div>
 
           <div className="space-y-4 lg:hidden">
-            {workflowSteps.map((step) => (
+            {workflowSteps.map((step, index) => (
               <div
                 key={step.title}
-                className="rounded-[0.75rem] border border-[color:var(--foreground-muted)]/14 bg-[color:var(--card)] p-5"
+                className="rounded-[1rem] border border-white/10 bg-white/[0.045] p-5 shadow-[var(--shadow-card)]"
               >
+                <p className="mb-4 text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--foreground-muted)]">
+                  0{index + 1}
+                </p>
                 <h3 className="text-lg font-semibold text-[color:var(--foreground)]">
                   {step.title}
                 </h3>

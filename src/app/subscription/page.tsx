@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AuthGuard } from "@/components/auth/AuthGuard";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
 import { SidebarLayout } from "@/components/layout/SidebarLayout";
@@ -41,34 +41,22 @@ export default function SubscriptionPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [activePlan, setActivePlan] = useState<"monthly" | "annual" | null>(null);
 
-  useEffect(() => {
-    let isMounted = true;
-
-    async function loadStatus() {
-      try {
-        const subscriptionStatus = await getSubscriptionStatus();
-        if (isMounted) {
-          setStatus(subscriptionStatus);
-        }
-      } catch (loadError) {
-        if (isMounted) {
-          setError(loadError instanceof Error ? loadError.message : "Unable to load subscription status");
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
+  const loadStatus = useCallback(async () => {
+    try {
+      const subscriptionStatus = await getSubscriptionStatus();
+      setStatus(subscriptionStatus);
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : "Unable to load subscription status");
+    } finally {
+      setIsLoading(false);
     }
-
-    void loadStatus();
-
-    return () => {
-      isMounted = false;
-    };
   }, []);
 
-  const handlePayment = async (plan: "monthly" | "annual") => {
+  useEffect(() => {
+    void loadStatus();
+  }, [loadStatus]);
+
+  const handlePayment = useCallback(async (plan: "monthly" | "annual") => {
     setActivePlan(plan);
     setMessage(null);
     setError(null);
@@ -80,20 +68,20 @@ export default function SubscriptionPage() {
       } else {
         setMessage(result.message);
       }
-      const refreshedStatus = await getSubscriptionStatus();
-      setStatus(refreshedStatus);
+      await loadStatus();
     } catch (paymentError) {
       setError(paymentError instanceof Error ? paymentError.message : "Payment failed");
     } finally {
       setActivePlan(null);
     }
-  };
+  }, [loadStatus]);
 
   return (
     <AuthGuard allowedRoles={["customer"]}>
-      <main className="min-h-screen bg-[color:var(--background)] px-4 py-8 sm:px-6 lg:px-8">
+      <SidebarLayout>
+      <main className="min-h-screen bg-zinc-950 px-4 py-8 text-zinc-50 sm:px-6 lg:px-8">
         <Container>
-          <Breadcrumbs items={[{ href: "/", label: "Home" }, { href: "/dashboard", label: "Dashboard" }, { label: "Subscription" }]} />
+          <Breadcrumbs items={[{ href: "/dashboard", label: "Dashboard" }, { label: "Subscription" }]} />
           <div className="mx-auto max-w-4xl space-y-6">
             <section className="rounded-[0.75rem] border border-[color:var(--foreground-muted)]/14 bg-[color:var(--card)] p-6 sm:p-7">
               <h1 className="text-2xl font-semibold text-[color:var(--foreground)]">Subscription</h1>
@@ -154,6 +142,7 @@ export default function SubscriptionPage() {
           </div>
         </Container>
       </main>
+      </SidebarLayout>
     </AuthGuard>
   );
 }

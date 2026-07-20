@@ -27,17 +27,12 @@ interface LoginResponse {
   user: AuthUser;
 }
 
-interface RegisterResponse extends AuthUser {
-  createdAt?: string;
-  updatedAt?: string;
-}
-
 interface AuthContextValue {
   user: AuthUser | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<AuthUser>;
-  register: (name: string, email: string, password: string) => Promise<RegisterResponse>;
+  register: (name: string, email: string, password: string) => Promise<AuthUser>;
   logout: () => void;
   refreshUser: () => Promise<AuthUser | null>;
 }
@@ -45,7 +40,7 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function getDefaultAuthenticatedPath(role: UserRole) {
-  return role === "admin" ? "/admin" : "/dashboard";
+  return "/dashboard";
 }
 
 export function getSafeRedirectPath(path: string | null, role: UserRole) {
@@ -53,12 +48,8 @@ export function getSafeRedirectPath(path: string | null, role: UserRole) {
     return getDefaultAuthenticatedPath(role);
   }
 
-  if (role === "admin") {
-    return path.startsWith("/admin") ? path : "/admin";
-  }
-
   if (path.startsWith("/admin")) {
-    return "/dashboard";
+    return role === "admin" ? path : "/dashboard";
   }
 
   return path;
@@ -136,17 +127,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const register = useCallback(async (name: string, email: string, password: string) => {
-    const response = await apiRequest<RegisterResponse>("/auth/register", {
+    const response = await apiRequest<LoginResponse>("/auth/register", {
       method: "POST",
       auth: false,
       body: { name: name.trim(), email: email.trim(), password },
     });
 
-    if (!response.data) {
+    if (!response.data?.token || !response.data.user) {
       throw new Error("Registration response was incomplete");
     }
 
-    return response.data;
+    setAuthToken(response.data.token);
+    setHasSession(true);
+    setUser(response.data.user);
+    return response.data.user;
   }, []);
 
   const logout = useCallback(() => {

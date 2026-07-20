@@ -1,27 +1,27 @@
 @import "tailwindcss";
 
 :root {
-  --background: #09090b;
-  --card: #18181b;
+  --background: #050609;
+  --card: #111318;
   --foreground: #fafafa;
-  --foreground-secondary: #d4d4d8;
-  --foreground-muted: #71717a;
-  --primary: #6366f1;
-  --secondary: #14b8a6;
-  --accent: #f59e0b;
+  --foreground-secondary: #c8ced8;
+  --foreground-muted: #7d8794;
+  --primary: #7c8cff;
+  --secondary: #38d7bf;
+  --accent: #f4b86a;
   --error: #ef4444;
 
   --radius-sm: 0.375rem;
   --radius-md: 0.625rem;
   --radius-lg: 0.875rem;
 
-  --surface-muted: #27272a;
-  --surface-strong: #18181b;
+  --surface-muted: #191d24;
+  --surface-strong: #0c0f14;
   --surface-hover: rgba(255, 255, 255, 0.04);
-  --border-soft: rgba(255, 255, 255, 0.08);
+  --border-soft: rgba(255, 255, 255, 0.1);
 
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.5);
-  --shadow-elevated: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+  --shadow-card: 0 18px 50px rgba(0, 0, 0, 0.28);
+  --shadow-elevated: 0 30px 90px rgba(0, 0, 0, 0.46);
 
   /* Sidebar shell */
   --sidebar-width: 256px;
@@ -61,18 +61,27 @@
 
 html {
   scroll-behavior: smooth;
+  scroll-padding-top: 6rem;
 }
 
 body {
   min-height: 100vh;
   margin: 0;
-  background: var(--background);
+  background:
+    radial-gradient(circle at top left, rgba(124, 140, 255, 0.16), transparent 32rem),
+    radial-gradient(circle at 82% 12%, rgba(56, 215, 191, 0.1), transparent 26rem),
+    var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
   line-height: 1.5;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: rgba(124, 140, 255, 0.35);
+  color: var(--foreground);
 }
 
 button,

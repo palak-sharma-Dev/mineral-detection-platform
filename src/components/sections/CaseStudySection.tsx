@@ -25,19 +25,25 @@ const caseStudySections = [
 
 export function CaseStudySection() {
   return (
-    <section className="bg-[color:var(--background)] px-0 py-20 sm:py-24 lg:py-28">
+    <section className="px-0 py-18 sm:py-22 lg:py-28">
       <Container>
-        <div className="mx-auto max-w-5xl">
-          <div className="mb-10 sm:mb-12 lg:mb-14">
-            <h2 className="text-3xl font-semibold tracking-[-0.02em] text-[color:var(--foreground)] sm:text-4xl lg:text-[2.55rem]">
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-10 max-w-3xl sm:mb-12 lg:mb-14">
+            <p className="mb-3 text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-[color:var(--secondary)]">
+              Applied Intelligence
+            </p>
+            <h2 className="text-3xl font-semibold text-[color:var(--foreground)] sm:text-4xl lg:text-[2.65rem]">
               Case Study
             </h2>
           </div>
 
-          <div className="rounded-[0.75rem] border border-[color:var(--foreground-muted)]/14 bg-[color:var(--card)]">
-            <div className="divide-y divide-[color:var(--foreground-muted)]/12">
-              {caseStudySections.map((section) => (
-                <div key={section.title} className="px-6 py-6 sm:px-8 sm:py-7">
+          <div className="overflow-hidden rounded-[1.1rem] border border-white/10 bg-white/[0.045] shadow-[var(--shadow-card)]">
+            <div className="grid divide-y divide-white/10 lg:grid-cols-2 lg:divide-x lg:divide-y-0">
+              {caseStudySections.map((section, index) => (
+                <div key={section.title} className="px-6 py-7 sm:px-8 sm:py-8">
+                  <p className="mb-4 text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--foreground-muted)]">
+                    0{index + 1}
+                  </p>
                   <h3 className="text-xl font-semibold text-[color:var(--foreground)]">
                     {section.title}
                   </h3>

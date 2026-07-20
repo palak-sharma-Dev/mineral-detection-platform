@@ -8,8 +8,11 @@ const router = Router();
 
 router.post(
   "/register",
-  body("name").trim().notEmpty().withMessage("Name is required"),
-  body("email").isEmail().withMessage("Valid email is required"),
+  body("name")
+    .trim()
+    .isLength({ min: 2, max: 80 })
+    .withMessage("Name must be between 2 and 80 characters"),
+  body("email").trim().isEmail().withMessage("Valid email is required").normalizeEmail(),
   body("password")
     .isLength({ min: 8 })
     .withMessage("Password must be at least 8 characters long"),
@@ -19,7 +22,7 @@ router.post(
 
 router.post(
   "/login",
-  body("email").isEmail().withMessage("Valid email is required"),
+  body("email").trim().isEmail().withMessage("Valid email is required").normalizeEmail(),
   body("password").notEmpty().withMessage("Password is required"),
   validateRequest,
   asyncHandler(loginController)

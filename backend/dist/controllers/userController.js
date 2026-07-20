@@ -32,7 +32,15 @@ function getMeController(req, res) {
         },
     });
 }
-function getSubscriptionMeta(status, createdAt) {
+function getSubscriptionMeta(user) {
+    if (user.subscriptionStatus || user.paymentStatus) {
+        return {
+            subscriptionStatus: user.subscriptionStatus ?? "trial",
+            paymentStatus: user.paymentStatus ?? "pending",
+            paymentProvider: user.paymentProvider ?? "razorpay",
+        };
+    }
+    const { status, createdAt } = user;
     const ageInDays = (Date.now() - createdAt.getTime()) / (1000 * 60 * 60 * 24);
     if (status !== "active") {
         return {
@@ -60,7 +68,7 @@ async function adminDashboardController(_req, res) {
         user_1.default.countDocuments({ status: "active" }),
         user_1.default.countDocuments({ status: "inactive" }),
         user_1.default.find({ role: "customer" })
-            .select("createdAt status")
+            .select("createdAt status subscriptionStatus paymentStatus paymentProvider")
             .lean(),
     ]);
     const subscriptionSummary = {
@@ -74,7 +82,13 @@ async function adminDashboardController(_req, res) {
         failed: 0,
     };
     customerUsers.forEach((user) => {
-        const meta = getSubscriptionMeta(user.status, user.createdAt);
+        const meta = getSubscriptionMeta({
+            status: user.status,
+            createdAt: user.createdAt,
+            subscriptionStatus: user.subscriptionStatus,
+            paymentStatus: user.paymentStatus,
+            paymentProvider: user.paymentProvider,
+        });
         subscriptionSummary[meta.subscriptionStatus] += 1;
         paymentStatusSummary[meta.paymentStatus] += 1;
     });
@@ -217,14 +231,20 @@ async function deleteUserController(req, res) {
 }
 async function getSubscriptionsController(_req, res) {
     const customers = await user_1.default.find({ role: "customer" })
-        .select("name email status createdAt")
+        .select("name email status createdAt subscriptionStatus paymentStatus paymentProvider")
         .sort({ createdAt: -1 })
         .lean();
     const subscriptions = customers.map((user) => ({
         id: user._id,
         name: user.name,
         email: user.email,
-        ...getSubscriptionMeta(user.status, user.createdAt),
+        ...getSubscriptionMeta({
+            status: user.status,
+            createdAt: user.createdAt,
+            subscriptionStatus: user.subscriptionStatus,
+            paymentStatus: user.paymentStatus,
+            paymentProvider: user.paymentProvider,
+        }),
     }));
     const summary = {
         trial: subscriptions.filter((sub) => sub.subscriptionStatus === "trial").length,

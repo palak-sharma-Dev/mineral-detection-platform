@@ -2,7 +2,7 @@
 
 import { ReactNode, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { getSafeRedirectPath, useAuth } from "@/context/AuthContext";
+import { getDefaultAuthenticatedPath, useAuth } from "@/context/AuthContext";
 
 export function PublicAuthRoute({ children }: { children: ReactNode }) {
   const { user, isLoading, isAuthenticated } = useAuth();
@@ -13,8 +13,7 @@ export function PublicAuthRoute({ children }: { children: ReactNode }) {
       return;
     }
 
-    const nextPath = new URLSearchParams(window.location.search).get("next");
-    router.replace(getSafeRedirectPath(nextPath, user.role));
+    router.replace(getDefaultAuthenticatedPath(user.role));
   }, [isAuthenticated, isLoading, router, user]);
 
   if (isLoading || isAuthenticated) {

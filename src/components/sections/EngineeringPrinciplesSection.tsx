@@ -9,25 +9,32 @@ const principles = [
 
 export function EngineeringPrinciplesSection() {
   return (
-    <section className="bg-[color:var(--background)] px-0 py-20 sm:py-24 lg:py-28">
+    <section className="px-0 py-18 sm:py-22 lg:py-28">
       <Container>
-        <div className="mx-auto max-w-5xl">
-          <div className="mb-10 sm:mb-12 lg:mb-14">
-            <h2 className="text-3xl font-semibold tracking-[-0.02em] text-[color:var(--foreground)] sm:text-4xl lg:text-[2.55rem]">
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-10 max-w-3xl sm:mb-12 lg:mb-14">
+            <p className="mb-3 text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-[color:var(--secondary)]">
+              Governance
+            </p>
+            <h2 className="text-3xl font-semibold text-[color:var(--foreground)] sm:text-4xl lg:text-[2.65rem]">
               Engineering Principles
             </h2>
           </div>
 
-          <div className="rounded-[0.75rem] border border-[color:var(--foreground-muted)]/14 bg-[color:var(--card)]">
-            <div className="divide-y divide-[color:var(--foreground-muted)]/12">
-              {principles.map((principle) => (
-                <div key={principle} className="px-6 py-5 sm:px-8 sm:py-6">
+          <div className="grid gap-4 md:grid-cols-2">
+            {principles.map((principle, index) => (
+              <div
+                key={principle}
+                className="rounded-[1rem] border border-white/10 bg-white/[0.045] p-6 shadow-[var(--shadow-card)]"
+              >
+                <div className="mb-5 inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-xs font-semibold text-[color:var(--secondary)]">
+                  0{index + 1}
+                </div>
                   <p className="text-[1rem] leading-8 text-[color:var(--foreground-secondary)] sm:text-[1.03rem]">
                     {principle}
                   </p>
-                </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
         </div>
       </Container>

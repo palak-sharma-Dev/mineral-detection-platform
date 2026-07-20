@@ -1,7 +1,7 @@
 "use client";
 
 import { ReactNode, useEffect } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { getDefaultAuthenticatedPath, useAuth, UserRole } from "@/context/AuthContext";
 
 interface AuthGuardProps {
@@ -11,7 +11,6 @@ interface AuthGuardProps {
 
 export function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
   const { user, isLoading, isAuthenticated } = useAuth();
-  const pathname = usePathname();
   const router = useRouter();
 
   useEffect(() => {
@@ -20,14 +19,15 @@ export function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
     }
 
     if (!isAuthenticated) {
-      router.replace(`/login?next=${encodeURIComponent(pathname)}`);
+      const nextPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+      router.replace(`/login?next=${encodeURIComponent(nextPath)}`);
       return;
     }
 
     if (user && !allowedRoles.includes(user.role)) {
       router.replace(getDefaultAuthenticatedPath(user.role));
     }
-  }, [allowedRoles, isAuthenticated, isLoading, pathname, router, user]);
+  }, [allowedRoles, isAuthenticated, isLoading, router, user]);
 
   if (isLoading || !isAuthenticated || !user || !allowedRoles.includes(user.role)) {
     return null;

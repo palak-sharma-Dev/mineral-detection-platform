@@ -1,27 +1,56 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PublicAuthRoute } from "@/components/auth/PublicAuthRoute";
-import { getDefaultAuthenticatedPath, useAuth } from "@/context/AuthContext";
+import { getSafeRedirectPath, useAuth } from "@/context/AuthContext";
 
 export default function RegisterPage() {
-  const { login, register } = useAuth();
+  const { register } = useAuth();
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [authSearch, setAuthSearch] = useState("");
+
+  useEffect(() => {
+    setAuthSearch(window.location.search);
+  }, []);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (isSubmitting) {
+      return;
+    }
+
     setError(null);
+    setSuccess(null);
     setIsSubmitting(true);
 
     const formData = new FormData(event.currentTarget);
-    const name = String(formData.get("fullName") ?? "");
-    const email = String(formData.get("email") ?? "");
+    const name = String(formData.get("fullName") ?? "").trim();
+    const email = String(formData.get("email") ?? "").trim();
     const password = String(formData.get("password") ?? "");
     const confirmPassword = String(formData.get("confirmPassword") ?? "");
+
+    if (name.length < 2) {
+      setError("Enter your full name");
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!email) {
+      setError("Email is required");
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters long");
+      setIsSubmitting(false);
+      return;
+    }
 
     if (password !== confirmPassword) {
       setError("Passwords do not match");
@@ -30,9 +59,10 @@ export default function RegisterPage() {
     }
 
     try {
-      await register(name, email, password);
-      const user = await login(email, password);
-      router.replace(getDefaultAuthenticatedPath(user.role));
+      const user = await register(name, email, password);
+      const nextPath = new URLSearchParams(window.location.search).get("next");
+      setSuccess("Account created successfully. Redirecting...");
+      router.replace(getSafeRedirectPath(nextPath, user.role));
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "Unable to create account");
     } finally {
@@ -123,6 +153,9 @@ export default function RegisterPage() {
               {error ? (
                 <p className="text-sm font-medium text-[color:var(--error)]">{error}</p>
               ) : null}
+              {success ? (
+                <p className="text-sm font-medium text-[color:var(--secondary)]">{success}</p>
+              ) : null}
 
               <button
                 type="submit"
@@ -134,7 +167,10 @@ export default function RegisterPage() {
             </form>
 
             <div className="mt-6 text-center text-sm text-[color:var(--foreground-secondary)]">
-              <Link href="/login" className="font-medium text-[color:var(--primary)] transition hover:text-[color:var(--primary)]/80">
+              <Link
+                href={`/login${authSearch}`}
+                className="font-medium text-[color:var(--primary)] transition hover:text-[color:var(--primary)]/80"
+              >
                 Sign In
               </Link>
             </div>

@@ -26,7 +26,24 @@ export function getMeController(req: Request, res: Response) {
   });
 }
 
-function getSubscriptionMeta(status: string, createdAt: Date) {
+interface SubscriptionMetaUser {
+  status: string;
+  createdAt: Date;
+  subscriptionStatus?: string;
+  paymentStatus?: string;
+  paymentProvider?: string;
+}
+
+function getSubscriptionMeta(user: SubscriptionMetaUser) {
+  if (user.subscriptionStatus || user.paymentStatus) {
+    return {
+      subscriptionStatus: user.subscriptionStatus ?? "trial",
+      paymentStatus: user.paymentStatus ?? "pending",
+      paymentProvider: user.paymentProvider ?? "razorpay",
+    };
+  }
+
+  const { status, createdAt } = user;
   const ageInDays = (Date.now() - createdAt.getTime()) / (1000 * 60 * 60 * 24);
 
   if (status !== "active") {
@@ -58,7 +75,7 @@ export async function adminDashboardController(_req: Request, res: Response) {
     User.countDocuments({ status: "active" }),
     User.countDocuments({ status: "inactive" }),
     User.find({ role: "customer" })
-      .select("createdAt status")
+      .select("createdAt status subscriptionStatus paymentStatus paymentProvider")
       .lean(),
   ]);
 
@@ -75,7 +92,13 @@ export async function adminDashboardController(_req: Request, res: Response) {
   };
 
   customerUsers.forEach((user) => {
-    const meta = getSubscriptionMeta(user.status, user.createdAt as Date);
+    const meta = getSubscriptionMeta({
+      status: user.status,
+      createdAt: user.createdAt as Date,
+      subscriptionStatus: user.subscriptionStatus,
+      paymentStatus: user.paymentStatus,
+      paymentProvider: user.paymentProvider,
+    });
     subscriptionSummary[meta.subscriptionStatus as keyof typeof subscriptionSummary] += 1;
     paymentStatusSummary[meta.paymentStatus as keyof typeof paymentStatusSummary] += 1;
   });
@@ -249,7 +272,7 @@ export async function deleteUserController(req: Request, res: Response) {
 
 export async function getSubscriptionsController(_req: Request, res: Response) {
   const customers = await User.find({ role: "customer" })
-    .select("name email status createdAt")
+    .select("name email status createdAt subscriptionStatus paymentStatus paymentProvider")
     .sort({ createdAt: -1 })
     .lean();
 
@@ -257,7 +280,13 @@ export async function getSubscriptionsController(_req: Request, res: Response) {
     id: user._id,
     name: user.name,
     email: user.email,
-    ...getSubscriptionMeta(user.status, user.createdAt as Date),
+    ...getSubscriptionMeta({
+      status: user.status,
+      createdAt: user.createdAt as Date,
+      subscriptionStatus: user.subscriptionStatus,
+      paymentStatus: user.paymentStatus,
+      paymentProvider: user.paymentProvider,
+    }),
   }));
 
   const summary = {

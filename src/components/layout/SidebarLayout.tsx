@@ -85,7 +85,7 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
       ),
     },
     {
-      href: "/dashboard#snapshots",
+      href: "/snapshots",
       label: "Snapshots",
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -160,10 +160,7 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
     return (
       <nav className="flex-1 px-2 py-4 space-y-0.5" aria-label="Primary navigation">
         {navItems.map((item) => {
-          const isActive =
-            item.href === "/dashboard#snapshots"
-              ? false
-              : pathname === item.href || pathname.startsWith(item.href + "/");
+          const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
           return (
             <Link
               key={item.href}
@@ -210,7 +207,7 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
         {/* Brand header */}
         <div className="relative flex h-16 flex-shrink-0 items-center border-b border-zinc-900/60 px-3">
           <Link
-            href="/"
+            href="/dashboard"
             className={cn(
               "flex items-center gap-3 min-w-0 flex-1 rounded-md focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[color:var(--primary)]",
               collapsed ? "justify-center" : ""
@@ -306,7 +303,7 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
       <div className="app-main-content flex-1 flex flex-col min-w-0">
         {/* Mobile Shell Header */}
         <header className="sticky top-0 z-30 flex h-16 flex-shrink-0 items-center justify-between border-b border-zinc-900/60 bg-zinc-950/80 backdrop-blur-md px-4 md:hidden">
-          <Link href="/" className="flex items-center gap-2.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[color:var(--primary)] rounded-md">
+          <Link href="/dashboard" className="flex items-center gap-2.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[color:var(--primary)] rounded-md">
             <div className="relative h-8 w-8 rounded-lg overflow-hidden bg-white shadow-sm">
               <Image
                 src="/garud-icon-32.png"
