@@ -71,13 +71,6 @@ function getStoredToken() {
       return localToken;
     }
 
-    const sessionToken = window.sessionStorage.getItem(AUTH_TOKEN_KEY);
-    if (sessionToken) {
-      window.localStorage.setItem(AUTH_TOKEN_KEY, sessionToken);
-      window.sessionStorage.removeItem(AUTH_TOKEN_KEY);
-      return sessionToken;
-    }
-
     const legacyToken = window.localStorage.getItem(LEGACY_AUTH_TOKEN_KEY);
     if (legacyToken) {
       window.localStorage.setItem(AUTH_TOKEN_KEY, legacyToken);
@@ -240,7 +233,6 @@ export function setAuthToken(token: string | null) {
 
   try {
     window.localStorage.removeItem(LEGACY_AUTH_TOKEN_KEY);
-    window.sessionStorage.removeItem(AUTH_TOKEN_KEY);
 
     if (token) {
       window.localStorage.setItem(AUTH_TOKEN_KEY, token);
